@@ -1,7 +1,12 @@
+## Aseprite バージョン前提
+- 本extensionは **Aseprite v1.3-rc5 以上** を前提にしています（`json.decode()` 使用）。
+
 # USER GUIDE
 
 ## Open Blender Job
-- job JSON を選択して source PNG を開きます。
+- メニュー実行後、入力ダイアログに `job JSON path` を入力して開きます。
+- path は `plugin.preferences.default_job_folder` を初期値として補助表示します。
+- path不正/JSON不正/source欠落時はエラーダイアログを表示し、既存documentは変更しません。
 - palette / guides / layer template を必要に応じて適用します。
 
 ## Job Browser

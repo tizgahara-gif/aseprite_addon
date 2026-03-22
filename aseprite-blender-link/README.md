@@ -82,3 +82,10 @@ Blender側コンパニオンアドオンが生成した `job JSON` を Aseprite 
 ```bash
 python tests/fixtures/generate_sample_pngs.py
 ```
+
+
+## Open Blender Job の使い方（UI）
+1. メニューから **Open Blender Job** を実行
+2. 表示される Dialog の `Job JSON` 入力欄にジョブJSONのフルパスを入力
+3. Open を押す
+4. path が空/不正、JSON decode失敗、source画像欠落の場合は安全に失敗し、現在のdocumentは破壊しません
