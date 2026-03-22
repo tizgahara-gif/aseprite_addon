@@ -1,7 +1,21 @@
 local constants = _G.BLENDER_LINK_LOAD("core/constants.lua")
 local paths = _G.BLENDER_LINK_LOAD("core/paths.lua")
 
-local parser = {}
+local parser = {
+  logger = nil
+}
+
+function parser.setLogger(logger)
+  parser.logger = logger
+end
+
+local function logDebug(msg)
+  if parser.logger and parser.logger.debug then
+    parser.logger.debug(msg)
+  else
+    print("[BlenderLink][job_parser] " .. msg)
+  end
+end
 
 local function sanitizeMapType(rawMapType)
   if constants.mapTypes[rawMapType] then return rawMapType, false end
@@ -10,6 +24,43 @@ end
 
 local function addError(errors, msg)
   table.insert(errors, msg)
+end
+
+local function hasUtf8Bom(text)
+  return #text >= 3 and text:byte(1) == 0xEF and text:byte(2) == 0xBB and text:byte(3) == 0xBF
+end
+
+local function stripUtf8Bom(text)
+  if hasUtf8Bom(text) then
+    return text:sub(4), true
+  end
+  return text, false
+end
+
+local function looksUtf16(text)
+  if #text < 2 then return false, false end
+  local b1, b2 = text:byte(1), text:byte(2)
+  if b1 == 0xFF and b2 == 0xFE then return true, true end -- LE BOM
+  if b1 == 0xFE and b2 == 0xFF then return true, true end -- BE BOM
+
+  local zerosEven, zerosOdd = 0, 0
+  local n = math.min(#text, 64)
+  for i = 1, n do
+    local c = text:byte(i)
+    if c == 0 then
+      if i % 2 == 0 then zerosEven = zerosEven + 1 else zerosOdd = zerosOdd + 1 end
+    end
+  end
+  return (zerosEven > 8 or zerosOdd > 8), false
+end
+
+local function previewBytes(text, n)
+  local limit = math.min(#text, n or 96)
+  local out = {}
+  for i = 1, limit do
+    out[#out + 1] = string.format("%02X", text:byte(i))
+  end
+  return table.concat(out, " ")
 end
 
 local function validateSchema(raw)
@@ -61,12 +112,9 @@ local function parseGuides(jobPath, payload)
     end
   end
 
-  local uvPath = ""
-  local idPath = ""
-  local palettePath = ""
+  local uvPath, idPath, palettePath = "", "", ""
 
   if type(guides) == "table" and #guides > 0 then
-    -- guides array (legacy/current Blender output)
     for i, p in ipairs(guides) do
       if i == 1 then
         push("GUIDE_UV", p)
@@ -76,7 +124,6 @@ local function parseGuides(jobPath, payload)
       end
     end
   elseif type(guides) == "table" then
-    -- guides object
     push("GUIDE_UV", guides.uv_guide_path)
     push("GUIDE_ID", guides.id_map_path)
     push("GUIDE_PALETTE", guides.palette_preview_path)
@@ -95,8 +142,6 @@ local function parseGuides(jobPath, payload)
     uvPath = guides.uv_guide_path and paths.resolve(jobPath, guides.uv_guide_path) or ""
     idPath = guides.id_map_path and paths.resolve(jobPath, guides.id_map_path) or ""
     palettePath = guides.palette_path and paths.resolve(jobPath, guides.palette_path) or ""
-  else
-    -- nil or invalid => empty guides
   end
 
   return {
@@ -108,14 +153,50 @@ local function parseGuides(jobPath, payload)
 end
 
 function parser.parse(jobPath)
+  logDebug("Parsing job JSON: " .. tostring(jobPath))
   local file = io.open(jobPath, "r")
-  if not file then return nil, {"Could not open job JSON file"} end
+  if not file then
+    return nil, {
+      "Could not open job JSON file",
+      "Nothing was opened.",
+      "Check job path and permissions: " .. tostring(jobPath)
+    }
+  end
+
   local text = file:read("*a")
   file:close()
 
-  local ok, raw = pcall(function() return json.decode(text) end)
+  local size = #text
+  if size == 0 then
+    return nil, {
+      "Job JSON is empty",
+      "Job and source image were not opened.",
+      "Re-generate from Blender and confirm UTF-8 JSON content."
+    }
+  end
+
+  local utf16Likely, hadUtf16Bom = looksUtf16(text)
+  if utf16Likely then
+    return nil, {
+      "Job JSON appears to be UTF-16",
+      "Job and source image were not opened.",
+      "Job JSON is not UTF-8. Re-generate from Blender or re-save as UTF-8."
+    }
+  end
+
+  local stripped, hadBom = stripUtf8Bom(text)
+  local ok, raw = pcall(function() return json.decode(stripped) end)
   if not ok or type(raw) ~= "table" then
-    return nil, {"Invalid JSON format"}
+    local preview = previewBytes(stripped, 128)
+    logDebug("Decode failed for " .. tostring(jobPath))
+    logDebug("file_size=" .. tostring(size) .. " bom_utf8=" .. tostring(hadBom) .. " utf16_bom=" .. tostring(hadUtf16Bom))
+    logDebug("preview_hex=" .. preview)
+
+    return nil, {
+      "Job JSON decode failed (invalid JSON, BOM/encoding issue, or file corruption).",
+      "Job and source image were not opened.",
+      "Check UTF-8 encoding, remove invalid bytes, and validate JSON syntax."
+    }
   end
 
   local errors, payload = validateSchema(raw)

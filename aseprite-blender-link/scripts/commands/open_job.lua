@@ -20,6 +20,7 @@ local function isApiAvailable()
 end
 
 function openJob.openByPath(ctx, jobPath)
+  if parser.setLogger then parser.setLogger(ctx.logger) end
   local okApi, apiErr = isApiAvailable()
   if not okApi then
     dialogs.showError("Required Aseprite API is missing", "Job JSON and source image were not opened.", apiErr)
