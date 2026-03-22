@@ -26,6 +26,11 @@
 ## インストール
 `.aseprite-extension` 作成・導入手順は `INSTALL.md` を参照。
 
+### 更新時の注意（重要）
+- extension を更新した場合（特に `scripts/core/sync_manager.lua` を含む更新）は、`.aseprite-extension` を再作成して **Aseprite へ再インストール** してください。
+- 既存インストール済み extension は古い Lua を保持するため、再インストール前は修正が反映されず、過去のランタイムエラーが再発する場合があります。
+- 再インストール後は **Aseprite を再起動** してから動作確認してください。
+
 ## 主要コマンド
 - Open Blender Job
 - Validate Texture

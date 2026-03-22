@@ -2,10 +2,6 @@ local command = {}
 
 function command.run(ctx)
   local sprite = ctx.state.sprite or app.activeSprite
-  if not sprite then
-    app.alert("No active sprite.")
-    return
-  end
 
   local ok, msg = ctx.syncManager.sync_now(sprite)
   if ok then
