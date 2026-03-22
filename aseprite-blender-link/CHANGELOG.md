@@ -1,17 +1,14 @@
 # CHANGELOG
 
+## 0.3.0 - 2026-03-22
+- Repository responsibility narrowed to Aseprite extension only.
+- Removed Blender-side stub files from this repository.
+- Rewrote README/INSTALL/USER_GUIDE to focus only on Aseprite packaging, install, and usage.
+- Documented external dependency boundary: `tizgahara-gif/blender_pix`.
+
 ## 0.2.0 - 2026-03-22
-- Switched to proper Aseprite plugin lifecycle with `init(plugin)` / `exit(plugin)` in `main.lua`.
-- Added global module loader rooted at extension folder to avoid runtime path issues.
-- Migrated settings persistence to `plugin.preferences` (no external config file dependency).
-- Expanded state fields to include required job metadata fields.
-- Added json.decode availability gate for Aseprite version compatibility (v1.3-rc5+ expected).
-- Improved reload flow with revision-change detection.
-- Moved fixtures to `tests/fixtures`.
-- Updated docs with `.aseprite-extension` packaging and install instructions.
+- Added relay notification capable auto-sync flow.
+- Added dual schema compatibility (`raw.data` or root).
 
 ## 0.1.0 - 2026-03-22
-- MVP scaffold for Blender–Aseprite file-based extension.
-- Implemented job parser, validator, exporter, preferences, recent jobs.
-- Added commands: open/reload/validate/export/job browser/open export folder.
-- Added sample fixtures and docs.
+- Initial MVP scaffold.

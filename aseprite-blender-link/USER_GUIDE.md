@@ -1,75 +1,40 @@
-## Aseprite バージョン前提
-- 本extensionは **Aseprite v1.3-rc5 以上** を前提にしています（`json.decode()` 使用）。
-
-# USER GUIDE
+# USER GUIDE (Aseprite Extension)
 
 ## Open Blender Job
-- メニュー実行後、入力ダイアログに `job JSON path` を入力して開きます。
-- extension は nested schema を読み取り、`data.task.source_path` を source として開きます。
-- path は `plugin.preferences.default_job_folder` を初期値として補助表示します。
-- path不正/JSON不正/source欠落時はエラーダイアログを表示し、既存documentは変更しません。
-- palette / guides / layer template を必要に応じて適用します。
-
-## Job Browser
-- ジョブフォルダを指定し、JSON一覧から開きます。
-- 不正JSONは `[INVALID]` 表示されます。
+- job JSON path を入力して開きます
+- parser は `raw.data` 形式と root 直下形式の両方を受理します
+- `task.source_path` の画像を開きます
 
 ## Validate Texture
-- 解像度、color mode、required layers、export path などを検証します。
-- ERROR は export ブロック、WARNING は続行可能です。
+- 現在の sprite と job 制約を検証します
+- ERROR がある場合は export を止められます
 
 ## Export to Blender Target
-- `data.task.export_path` へ PNG を出力します。
-- `GUIDE_*` レイヤーは一時的に非表示化して除外します。
+- `task.export_path` へ PNG を出力します
+- Save / Save As とは別操作です
+- `GUIDE_*` は export から除外されます
 
-## ガイドレイヤーの扱い
-- `GUIDE_UV`, `GUIDE_ID`, `GUIDE_MASK_XX` として **reference layer** で追加されます。
-- 補助用途のみで、本体レイヤーに結合しないでください。
+## Toggle Auto Sync
+- 編集 change を監視し、debounce 後に自動 export
+- 自動 export 後に relay へ `texture_exported` 通知
 
-## よくある失敗
-- 必須フィールド不足のJSON
-- source PNG が存在しない
-- export先フォルダが存在しない
-- lock_required_layers 下で必須レイヤー不足
+## Sync Now
+- 手動で即時 export + relay 通知
 
-## トラブルシュート
-- Preferences で `enable_debug_mode` を有効化
-- `write_log_file` + `log_file_path` を設定してログ確認
-- 必要に応じて job JSON の相対パスを絶対パスへ変更
+## Preferences
+重要項目:
+- `relay_url`
+- `debounce_seconds`
+- `auto_sync_default`
+- `auto_validate_before_export`
+- `show_sync_status`
 
+## job JSON 受理ルール
+- `payload = raw.data or raw`
+- 必須: `schema`, `revision`, `revision_tag`, `asset.*`, `task.map_type`, `task.source_path`, `task.export_path`
+- `task.guides` は object / array / nil すべて許容
 
-## Save と Export の違い
-- `Save` / `Save As` は作業ファイルの保存です。
-- `Export to Blender Target` は Blender 側監視先 (`data.task.export_path`) への書き戻しです。
-- 本extensionは両者を分離し、Export時のみ target PNG を更新します。
-
-
-## Fixture PNG 生成
-バイナリファイル配布制約がある環境では、以下を実行して sample PNG を生成してください。
-
-```bash
-python tests/fixtures/generate_sample_pngs.py
-```
-
-
-## Auto Sync
-- `Toggle Auto Sync` で current sprite の自動同期を ON/OFF します。
-- `Sync Now` は即時で `data.task.export_path` へエクスポートします。
-- 自動同期は debounce 秒数 (`debounce_seconds`) 経過後に実行されます。
-
-
-## localhost relay 方式
-- Aseprite は WebSocket client として `relay_url` へ接続します。
-- 自動export後に `texture_exported` JSON を relay へ通知します。
-- Blender 側は relay inbox(JSON) を timer polling して `image.reload()` します。
-
-
-## Schema 互換モード
-- parser は `raw.data or raw` で payload を決定し、
-  - data wrapper 付き schema (`{ "data": ... }`)
-  - root 直下 schema
-  の両方に対応します。
-- `task.guides` は object / string array / nil の全ケースを許容します。
-  - array: 1件目を `GUIDE_UV`、2件目以降を `GUIDE_EXTRA_XX`
-  - object: `uv_guide_path`, `id_map_path`, `mask_paths`, `extra_paths` を利用
-  - nil: 空ガイドとして扱いエラーにしません。
+## 既知制約
+- relay が未接続でも extension は動作継続（通知のみ失敗）
+- Blender add-on 側の導入・UI・operator 詳細はこの repo では扱いません
+- Blender 側は `tizgahara-gif/blender_pix` を参照してください
