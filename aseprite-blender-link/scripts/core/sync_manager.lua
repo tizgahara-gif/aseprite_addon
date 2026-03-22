@@ -83,10 +83,6 @@ function syncManager.detach_sprite_sync(sprite)
     log(entry, "debug", "listener removed for " .. key .. " code=" .. tostring(entry.listenerCode))
   end
 
-  if entry.closeListenerCode and sprite.events then
-    pcall(function() sprite.events:off(entry.closeListenerCode) end)
-  end
-
   syncManager.entries[key] = nil
   log(entry, "info", "sync entry detached for " .. key)
 end
@@ -114,12 +110,21 @@ function syncManager.attach_sprite_sync(sprite, job, plugin, state, config, logg
   if debounce <= 0 then debounce = 0.2 end
 
   local listenerCode = nil
-  local closeListenerCode = nil
   local timer = nil
 
   local ok, attachErr = pcall(function()
-    listenerCode = sprite.events:on('change', function()
+    local changeEventName = "change"
+    log(entry, "debug", "attaching listener event=" .. changeEventName .. " sprite=" .. key)
+    listenerCode = sprite.events:on(changeEventName, function(ev)
       if not entry.enabled then return end
+      if ev and ev.fromUndo then
+        log(entry, "debug", "change ignored from undo/redo for " .. key)
+        return
+      end
+      if sprite.isClosed then
+        log(entry, "debug", "change ignored for closed sprite " .. key)
+        return
+      end
       entry.pending = true
       if entry.timer and entry.timer.isRunning then
         entry.timer:stop()
@@ -148,16 +153,11 @@ function syncManager.attach_sprite_sync(sprite, job, plugin, state, config, logg
     }
     log(entry, "debug", "timer created for " .. key .. " debounce=" .. tostring(debounce))
 
-    closeListenerCode = sprite.events:on('close', function()
-      syncManager.detach_sprite_sync(sprite)
-    end)
-    log(entry, "debug", "close-listener attached for " .. key .. " code=" .. tostring(closeListenerCode))
   end)
 
   if not ok then
     if timer then pcall(function() timer:stop() end) end
     if listenerCode and sprite.events then pcall(function() sprite.events:off(listenerCode) end) end
-    if closeListenerCode and sprite.events then pcall(function() sprite.events:off(closeListenerCode) end) end
     if logger and logger.error then
       logger.error("sync entry attach failed for " .. key .. ": " .. tostring(attachErr))
     end
@@ -166,15 +166,18 @@ function syncManager.attach_sprite_sync(sprite, job, plugin, state, config, logg
 
   entry.timer = timer
   entry.listenerCode = listenerCode
-  entry.closeListenerCode = closeListenerCode
   entry.enabled = config.get("auto_sync_default")
 
   syncManager.entries[key] = entry
-  log(entry, "info", "sync entry attached for " .. key .. " listener=" .. tostring(listenerCode) .. " closeListener=" .. tostring(closeListenerCode))
+  log(entry, "info", "sync entry attached for " .. key .. " listener=" .. tostring(listenerCode))
   return true
 end
 
 function syncManager.toggle(sprite, enabled)
+  if not sprite or sprite.isClosed then
+    if sprite then syncManager.detach_sprite_sync(sprite) end
+    return false, "Auto Sync is not attached to this sprite yet"
+  end
   local entry = syncManager.entries[spriteId(sprite)]
   if not entry then return false, "Auto Sync is not attached to this sprite yet" end
 
@@ -191,6 +194,10 @@ function syncManager.toggle(sprite, enabled)
 end
 
 function syncManager.sync_now(sprite)
+  if not sprite or sprite.isClosed then
+    if sprite then syncManager.detach_sprite_sync(sprite) end
+    return false, "Auto Sync is not attached to this sprite yet"
+  end
   local entry = syncManager.entries[spriteId(sprite)]
   if not entry then return false, "Auto Sync is not attached to this sprite yet" end
   return exportNow(entry, true)
