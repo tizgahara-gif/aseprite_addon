@@ -1,9 +1,0 @@
-GIMP Palette
-Name: Sample Pixel Palette
-Columns: 4
-#
-255 255 255 White
-0 0 0 Black
-255 0 0 Red
-0 255 0 Green
-0 0 255 Blue
