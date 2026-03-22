@@ -42,9 +42,9 @@ function state.setJob(jobPath, job, sprite)
   state.jobPath = jobPath
   state.job = job
   state.sprite = sprite
-  state.current_job_id = job.job_id
-  state.current_asset_id = job.asset_id
-  state.current_asset_name = job.asset_name
+  state.current_job_id = (job.asset_object_name or "") .. ":" .. (job.image_name or "") .. ":" .. tostring(job.revision or "")
+  state.current_asset_id = job.asset_object_name
+  state.current_asset_name = job.image_name or job.asset_name
   state.current_map_type = job.map_type
   state.current_revision = job.revision
   state.source_image_path = job.source_image_path

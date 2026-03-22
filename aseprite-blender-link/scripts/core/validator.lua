@@ -25,13 +25,21 @@ function validator.validate(job, sprite, state)
     return { state = constants.validationState.ERROR, findings = findings }
   end
 
-  if sprite.width ~= job.width or sprite.height ~= job.height then
-    add(findings, "ERROR", "Resolution mismatch with job")
+  if job.width and job.height then
+    if sprite.width ~= job.width or sprite.height ~= job.height then
+      add(findings, "ERROR", "Resolution mismatch with job")
+    end
+  else
+    add(findings, "WARNING", "Job does not define width/height; resolution lock skipped")
   end
 
   local mode = (sprite.colorMode == ColorMode.RGB and "rgb") or (sprite.colorMode == ColorMode.INDEXED and "indexed") or "unknown"
-  if job.color_mode and job.color_mode:lower() ~= mode then
-    add(findings, "ERROR", "Color mode mismatch")
+  if job.color_mode then
+    if job.color_mode:lower() ~= mode then
+      add(findings, "ERROR", "Color mode mismatch")
+    end
+  else
+    add(findings, "WARNING", "Job does not define color_mode; color-mode lock skipped")
   end
 
   local lockPalette = job.locked_constraints.lock_palette

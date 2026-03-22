@@ -8,21 +8,6 @@ constants.mapTypes = {
   CUSTOM = true
 }
 
-constants.requiredFields = {
-  "job_id",
-  "asset_id",
-  "asset_name",
-  "map_type",
-  "source_image_path",
-  "export_image_path",
-  "width",
-  "height",
-  "color_mode",
-  "revision",
-  "created_at",
-  "updated_at"
-}
-
 constants.lockedConstraintKeys = {
   "lock_resolution",
   "lock_palette",

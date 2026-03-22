@@ -44,7 +44,7 @@ function openJob.openByPath(ctx, jobPath)
   end
 
   if not app.fs.isFile(job.source_image_path) then
-    dialogs.showError("Source image does not exist", "No sprite was opened.", "Check source_image_path in job JSON.")
+    dialogs.showError("Source image does not exist", "No sprite was opened.", "Check task.source_path in job JSON.")
     return false
   end
 
@@ -83,7 +83,7 @@ function openJob.openByPath(ctx, jobPath)
   ctx.config.addRecentJob(jobPath)
   ctx.config.set("default_job_folder", app.fs.filePath(jobPath))
   ctx.config.save()
-  ctx.logger.info("Opened job: " .. job.job_id)
+  ctx.logger.info("Opened job: " .. (job.image_name or "unknown") .. " / rev " .. tostring(job.revision or "?"))
 
   if job.map_type_unknown then
     dialogs.showWarning("Unknown map_type detected. Treated as CUSTOM (UI shows unknown).")

@@ -1,12 +1,12 @@
 # Blender–Aseprite Link (MVP)
 
-Blender側コンパニオンアドオンが生成した `job JSON` を Aseprite で安全に開き、制約付きで編集し、`export_image_path` へ書き戻すための Aseprite extension です。
+Blender側コンパニオンアドオンが生成した `job JSON` を Aseprite で安全に開き、制約付きで編集し、`task.export_path` へ書き戻すための Aseprite extension です。
 
 ## 概要
 - job JSON ベースでジョブを識別
 - source/export を明確に分離
 - Validate Texture で整合性を確認
-- Export to Blender Target は常に `export_image_path` を使用
+- Export to Blender Target は常に `task.export_path` を使用
 - palette / guide / layer template をMVP対応
 
 ## 必要環境
@@ -24,15 +24,23 @@ Blender側コンパニオンアドオンが生成した `job JSON` を Aseprite 
 4. Aseprite の `Edit > Preferences > Extensions > Add Extension` から導入
 
 ## job JSON 形式
-必須フィールド:
-- `job_id`, `asset_id`, `asset_name`, `map_type`
-- `source_image_path`, `export_image_path`
-- `width`, `height`, `color_mode`, `revision`
-- `created_at`, `updated_at`
+現行 Blender companion add-on の nested schema を前提にしています。
 
-任意フィールド:
-- `palette_path`, `uv_guide_path`, `id_map_path`, `mask_paths`
-- `layer_template`, `locked_constraints`, `tags`, `notes` など
+必須:
+- `schema`, `created_at`, `revision`, `revision_tag`
+- `asset.object_name`, `asset.material_name`, `asset.image_name`, `asset.image_path`
+- `task.map_type`, `task.source_path`, `task.export_path`
+
+任意:
+- `task.guides.palette_path`
+- `task.guides.uv_guide_path`
+- `task.guides.id_map_path`
+- `task.guides.mask_paths`
+- `task.locked_constraints`
+- `task.layer_template`
+- `task.width`, `task.height`, `task.color_mode`
+
+`Open Blender Job` は `task.source_path` を開き、`Export to Blender Target` は `task.export_path` に保存します。
 
 ## 基本操作
 1. **Open Blender Job** で job JSON を開く
@@ -42,7 +50,7 @@ Blender側コンパニオンアドオンが生成した `job JSON` を Aseprite 
 
 ## Export の考え方
 - Save と Export は分離
-- Export は必ず `export_image_path` へ出力
+- Export は必ず `task.export_path` へ出力
 - guide レイヤー（`GUIDE_*`）は export 対象から除外
 - overwrite 確認設定を尊重
 
@@ -52,7 +60,7 @@ Blender側コンパニオンアドオンが生成した `job JSON` を Aseprite 
 - source欠落で失敗: `job_bad_resolution.json` を編集して存在しない source を指定
 - palette_path 欠落: jobから外して warning を確認
 - guide読込: `sample_uv_guide.png` を job に紐づけ確認
-- export path 確認: `export_image_path` へのPNG出力確認
+- export path 確認: `task.export_path` へのPNG出力確認
 - resolution mismatch: 開いた後にSpriteサイズ変更して Validate
 - required layers 欠落: layer_template 指定 + lock_required_layers true でレイヤー削除後 Validate
 - recent jobs: Open 後に Open Recent Job で確認
