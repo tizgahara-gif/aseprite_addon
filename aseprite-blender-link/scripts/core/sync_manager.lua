@@ -15,6 +15,23 @@ local function spriteId(sprite)
   return tostring(sprite) .. "|" .. filename
 end
 
+local function isSpriteAlive(sprite, logger, contextLabel)
+  local key = spriteId(sprite)
+  if not sprite then
+    if logger and logger.debug then logger.debug("isSpriteAlive=false (sprite=nil) context=" .. tostring(contextLabel)) end
+    return false
+  end
+  local sprites = (app and app.sprites) or {}
+  for _, s in ipairs(sprites) do
+    if s == sprite then
+      if logger and logger.debug then logger.debug("isSpriteAlive=true sprite=" .. key .. " context=" .. tostring(contextLabel)) end
+      return true
+    end
+  end
+  if logger and logger.debug then logger.debug("isSpriteAlive=false sprite=" .. key .. " context=" .. tostring(contextLabel)) end
+  return false
+end
+
 local function setGuideVisibility(sprite, visible)
   local previous = {}
   for i, layer in ipairs(sprite.layers) do
@@ -34,7 +51,11 @@ end
 
 local function exportNow(entry, force)
   local sprite = entry.sprite
-  if not sprite or sprite.isClosed then return false, "Sprite is closed" end
+  if not isSpriteAlive(sprite, entry.logger, "exportNow") then
+    log(entry, "warn", "Auto sync target is no longer open, detaching entry for " .. spriteId(sprite))
+    syncManager.detach_sprite_sync(sprite)
+    return false, "Auto Sync target is no longer open"
+  end
 
   if entry.config.get("auto_validate_before_export") then
     local result = validator.validate(entry.job, sprite, entry.state)
@@ -72,6 +93,8 @@ function syncManager.detach_sprite_sync(sprite)
   local key = spriteId(sprite)
   local entry = syncManager.entries[key]
   if not entry then return end
+  local alive = isSpriteAlive(sprite, entry.logger, "detach_sprite_sync")
+  log(entry, "debug", "detach requested sprite=" .. key .. " alive=" .. tostring(alive))
 
   if entry.timer then
     pcall(function() entry.timer:stop() end)
@@ -93,6 +116,10 @@ function syncManager.attach_sprite_sync(sprite, job, plugin, state, config, logg
   end
 
   local key = spriteId(sprite)
+  if not isSpriteAlive(sprite, logger, "attach_sprite_sync") then
+    if logger and logger.error then logger.error("attach skipped: target sprite is no longer open " .. key) end
+    return false, "Auto Sync target is no longer open"
+  end
   syncManager.detach_sprite_sync(sprite)
 
   local entry = {
@@ -121,8 +148,9 @@ function syncManager.attach_sprite_sync(sprite, job, plugin, state, config, logg
         log(entry, "debug", "change ignored from undo/redo for " .. key)
         return
       end
-      if sprite.isClosed then
-        log(entry, "debug", "change ignored for closed sprite " .. key)
+      if not isSpriteAlive(sprite, entry.logger, "change_event") then
+        log(entry, "debug", "change ignored for unavailable sprite " .. key)
+        syncManager.detach_sprite_sync(sprite)
         return
       end
       entry.pending = true
@@ -174,9 +202,12 @@ function syncManager.attach_sprite_sync(sprite, job, plugin, state, config, logg
 end
 
 function syncManager.toggle(sprite, enabled)
-  if not sprite or sprite.isClosed then
-    if sprite then syncManager.detach_sprite_sync(sprite) end
-    return false, "Auto Sync is not attached to this sprite yet"
+  if not sprite then
+    return false, "No active sprite."
+  end
+  if not isSpriteAlive(sprite, nil, "toggle") then
+    syncManager.detach_sprite_sync(sprite)
+    return false, "Auto Sync target is no longer open"
   end
   local entry = syncManager.entries[spriteId(sprite)]
   if not entry then return false, "Auto Sync is not attached to this sprite yet" end
@@ -194,9 +225,12 @@ function syncManager.toggle(sprite, enabled)
 end
 
 function syncManager.sync_now(sprite)
-  if not sprite or sprite.isClosed then
-    if sprite then syncManager.detach_sprite_sync(sprite) end
-    return false, "Auto Sync is not attached to this sprite yet"
+  if not sprite then
+    return false, "No active sprite."
+  end
+  if not isSpriteAlive(sprite, nil, "sync_now") then
+    syncManager.detach_sprite_sync(sprite)
+    return false, "Auto Sync target is no longer open"
   end
   local entry = syncManager.entries[spriteId(sprite)]
   if not entry then return false, "Auto Sync is not attached to this sprite yet" end
