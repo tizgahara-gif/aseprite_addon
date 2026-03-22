@@ -1,0 +1,8 @@
+* text=auto eol=lf
+*.md text eol=lf
+*.lua text eol=lf
+*.json text eol=lf
+*.gpl text eol=lf
+*.png binary
+*.aseprite-extension binary
+*.zip binary
