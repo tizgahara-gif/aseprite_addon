@@ -58,7 +58,13 @@ function openJob.openByPath(ctx, jobPath)
   ctx.state.setJob(jobPath, job, sprite)
 
   if ctx.syncManager then
-    ctx.syncManager.attach_sprite_sync(sprite, job, ctx.plugin, ctx.state, ctx.config, ctx.logger, ctx.relayClient)
+    local okSync, syncErr = ctx.syncManager.attach_sprite_sync(sprite, job, ctx.plugin, ctx.state, ctx.config, ctx.logger, ctx.relayClient)
+    if not okSync then
+      dialogs.showError("Auto Sync attach failed", "Auto Sync was not attached to this sprite.", tostring(syncErr))
+      ctx.logger.error("Auto sync attach failed for sprite " .. tostring(sprite) .. ": " .. tostring(syncErr))
+    else
+      ctx.logger.debug("Auto sync attached for sprite " .. tostring(sprite))
+    end
   end
 
   if job.locked_constraints.lock_palette == nil then
