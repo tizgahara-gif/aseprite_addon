@@ -23,7 +23,7 @@
 - `GUIDE_*` レイヤーは一時的に非表示化して除外します。
 
 ## ガイドレイヤーの扱い
-- `GUIDE_UV`, `GUIDE_ID`, `GUIDE_MASK_XX` として追加されます。
+- `GUIDE_UV`, `GUIDE_ID`, `GUIDE_MASK_XX` として **reference layer** で追加されます。
 - 補助用途のみで、本体レイヤーに結合しないでください。
 
 ## よくある失敗
@@ -50,3 +50,15 @@
 ```bash
 python tests/fixtures/generate_sample_pngs.py
 ```
+
+
+## Auto Sync
+- `Toggle Auto Sync` で current sprite の自動同期を ON/OFF します。
+- `Sync Now` は即時で `data.task.export_path` へエクスポートします。
+- 自動同期は debounce 秒数 (`debounce_seconds`) 経過後に実行されます。
+
+
+## localhost relay 方式
+- Aseprite は WebSocket client として `relay_url` へ接続します。
+- 自動export後に `texture_exported` JSON を relay へ通知します。
+- Blender 側は relay inbox(JSON) を timer polling して `image.reload()` します。

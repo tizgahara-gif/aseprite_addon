@@ -56,18 +56,38 @@ local function parseGuides(jobPath, data)
   local guides = data.task and data.task.guides or {}
   if type(guides) ~= "table" then guides = {} end
 
-  local maskPaths = {}
-  if type(guides.mask_paths) == "table" then
-    for _, p in ipairs(guides.mask_paths) do
-      table.insert(maskPaths, paths.resolve(jobPath, p))
+  local entries = {}
+  local function push(name, value)
+    if type(value) == "string" and value ~= "" then
+      table.insert(entries, { name = name, path = paths.resolve(jobPath, value) })
     end
   end
 
+  push("GUIDE_UV", guides.uv_guide_path)
+  push("GUIDE_ID", guides.id_map_path)
+  push("GUIDE_PALETTE", guides.palette_preview_path)
+
+  if type(guides.mask_paths) == "table" then
+    for i, p in ipairs(guides.mask_paths) do
+      push(string.format("GUIDE_MASK_%02d", i), p)
+    end
+  end
+
+  if type(guides.extra_paths) == "table" then
+    for i, p in ipairs(guides.extra_paths) do
+      push(string.format("GUIDE_EXTRA_%02d", i), p)
+    end
+  end
+
+  local uvPath = guides.uv_guide_path and paths.resolve(jobPath, guides.uv_guide_path) or ""
+  local idPath = guides.id_map_path and paths.resolve(jobPath, guides.id_map_path) or ""
+  local palettePath = guides.palette_path and paths.resolve(jobPath, guides.palette_path) or ""
+
   return {
-    palette_path = paths.resolve(jobPath, guides.palette_path),
-    uv_guide_path = paths.resolve(jobPath, guides.uv_guide_path),
-    id_map_path = paths.resolve(jobPath, guides.id_map_path),
-    mask_paths = maskPaths
+    palette_path = palettePath,
+    uv_guide_path = uvPath,
+    id_map_path = idPath,
+    entries = entries
   }
 end
 
@@ -102,13 +122,25 @@ function parser.parse(jobPath)
     map_type = mapType,
     map_type_unknown = unknownMapType,
 
+    task = {
+      map_type = mapType,
+      source_path = paths.resolve(jobPath, data.task.source_path),
+      export_path = paths.resolve(jobPath, data.task.export_path),
+      guides = data.task.guides,
+      layer_template = data.task.layer_template,
+      locked_constraints = data.task.locked_constraints or {},
+      width = data.task.width,
+      height = data.task.height,
+      color_mode = data.task.color_mode
+    },
+
     source_image_path = paths.resolve(jobPath, data.task.source_path),
     export_image_path = paths.resolve(jobPath, data.task.export_path),
 
     palette_path = guideSet.palette_path,
     uv_guide_path = guideSet.uv_guide_path,
     id_map_path = guideSet.id_map_path,
-    mask_paths = guideSet.mask_paths,
+    guide_entries = guideSet.entries,
 
     layer_template = data.task.layer_template,
     locked_constraints = data.task.locked_constraints or {},

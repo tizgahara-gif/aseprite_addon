@@ -56,6 +56,10 @@ function openJob.openByPath(ctx, jobPath)
 
   ctx.state.setJob(jobPath, job, sprite)
 
+  if ctx.syncManager then
+    ctx.syncManager.attach_sprite_sync(sprite, job, ctx.plugin, ctx.state, ctx.config, ctx.logger, ctx.relayClient)
+  end
+
   if job.locked_constraints.lock_palette == nil then
     job.locked_constraints.lock_palette = ctx.config.get("lock_palette_default")
   end

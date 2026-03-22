@@ -46,11 +46,16 @@ constants.defaults = {
   default_job_folder = "",
   recent_jobs_limit = 20,
   auto_validate_before_export = true,
+  auto_sync_default = false,
+  debounce_seconds = 0.8,
+  relay_url = "ws://127.0.0.1:8765",
+  deflate_enabled = false,
   auto_load_palette = true,
   auto_load_guides = true,
   lock_palette_default = true,
   show_guides_by_default = true,
   write_log_file = false,
+  show_sync_status = true,
   log_file_path = "",
   export_overwrite_confirmation = true,
   enable_debug_mode = false,
@@ -66,7 +71,9 @@ constants.commandIds = {
   EXPORT = "blender_link_export",
   OPEN_EXPORT_FOLDER = "blender_link_open_export_folder",
   PREFERENCES = "blender_link_preferences",
-  STATUS = "blender_link_status"
+  STATUS = "blender_link_status",
+  TOGGLE_AUTO_SYNC = "blender_link_toggle_auto_sync",
+  SYNC_NOW = "blender_link_sync_now"
 }
 
 return constants

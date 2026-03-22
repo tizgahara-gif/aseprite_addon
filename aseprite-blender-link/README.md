@@ -51,7 +51,7 @@ Blender側コンパニオンアドオンが生成した `job JSON` を Aseprite 
 ## Export の考え方
 - Save と Export は分離
 - Export は必ず `task.export_path` へ出力
-- guide レイヤー（`GUIDE_*`）は export 対象から除外
+- guide レイヤー（`GUIDE_*` の reference layer）は export 対象から除外
 - overwrite 確認設定を尊重
 
 ## 手動検証手順（MVP）
@@ -97,3 +97,17 @@ python tests/fixtures/generate_sample_pngs.py
 2. 表示される Dialog の `Job JSON` 入力欄にジョブJSONのフルパスを入力
 3. Open を押す
 4. path が空/不正、JSON decode失敗、source画像欠落の場合は安全に失敗し、現在のdocumentは破壊しません
+
+
+## Blender 向け自動同期 (Auto Sync)
+- `Sprite.events:on('change')` と debounce `Timer` を使って、編集後に自動で `data.task.export_path` へ `saveCopyAs` します。
+- Save/Save As とは分離され、Blender向け書き戻しのみを自動実行します。
+- `GUIDE_*` レイヤーは同期export時にも除外されます。
+- メニュー: `Toggle Auto Sync`, `Sync Now`
+- 設定: `auto_sync_default`, `debounce_seconds`, `show_sync_status`
+
+
+## localhost relay 方式
+- Aseprite は WebSocket client として `relay_url` へ接続します。
+- 自動export後に `texture_exported` JSON を relay へ通知します。
+- Blender 側は relay inbox(JSON) を timer polling して `image.reload()` します。

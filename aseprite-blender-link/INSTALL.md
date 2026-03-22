@@ -32,3 +32,9 @@
 ```bash
 python tests/fixtures/generate_sample_pngs.py
 ```
+
+
+## localhost relay 方式
+- Aseprite は WebSocket client として `relay_url` へ接続します。
+- 自動export後に `texture_exported` JSON を relay へ通知します。
+- Blender 側は relay inbox(JSON) を timer polling して `image.reload()` します。

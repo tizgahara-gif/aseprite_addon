@@ -1,27 +1,61 @@
 local guideManager = {}
 
-local function addGuideLayer(sprite, imagePath, layerName)
-  if not imagePath or imagePath == "" or not app.fs.isFile(imagePath) then
-    return false, "Guide missing: " .. tostring(imagePath)
+local function findLayer(sprite, name)
+  for _, layer in ipairs(sprite.layers) do
+    if layer.name == name then return layer end
+  end
+  return nil
+end
+
+local function removeLayerIfExists(sprite, name)
+  local existing = findLayer(sprite, name)
+  if existing then
+    app.transaction(function() sprite:deleteLayer(existing) end)
+  end
+end
+
+local function createReferenceLayer(sprite, name)
+  app.command.NewLayer{ reference = true }
+  local layer = app.activeLayer
+  if not layer then return nil, "Could not create layer" end
+  layer.name = name
+  layer.isVisible = true
+  return layer
+end
+
+local function upsertGuideReferenceLayer(sprite, entry)
+  if not entry.path or entry.path == "" then
+    return false, "Guide path is empty for " .. entry.name
+  end
+  if not app.fs.isFile(entry.path) then
+    return false, "Guide file missing: " .. entry.path
   end
 
-  local temp = app.open(imagePath)
-  if not temp then return false, "Could not open guide image" end
-  local cel = temp.cels[1]
-  if not cel then
-    temp:close()
-    return false, "Guide image has no cel"
-  end
-
-  app.transaction(function()
-    local layer = sprite:newLayer()
-    layer.name = layerName
-    layer.isVisible = true
-    layer.isEditable = true
-    sprite:newCel(layer, 1, cel.image, Point(0, 0))
+  local okImage, imageOrErr = pcall(function()
+    return Image{ fromFile = entry.path }
   end)
+  if not okImage or not imageOrErr then
+    return false, "Failed to read guide image: " .. entry.path
+  end
 
-  temp:close()
+  removeLayerIfExists(sprite, entry.name)
+
+  local okLayer, layerOrErr = pcall(function()
+    return createReferenceLayer(sprite, entry.name)
+  end)
+  if not okLayer or not layerOrErr then
+    return false, "Failed to create reference layer: " .. tostring(layerOrErr)
+  end
+  local layer = layerOrErr
+
+  local okCel, celErr = pcall(function()
+    local frame = sprite.frames[1] or 1
+    sprite:newCel(layer, frame, imageOrErr, Point(0, 0))
+  end)
+  if not okCel then
+    return false, "Failed to place guide cel: " .. tostring(celErr)
+  end
+
   return true
 end
 
@@ -29,16 +63,14 @@ function guideManager.loadGuides(sprite, job)
   local loaded = {}
   local warnings = {}
 
-  local okUv, errUv = addGuideLayer(sprite, job.uv_guide_path, "GUIDE_UV")
-  if okUv then table.insert(loaded, job.uv_guide_path) elseif job.uv_guide_path and job.uv_guide_path ~= "" then table.insert(warnings, errUv) end
-
-  local okId, errId = addGuideLayer(sprite, job.id_map_path, "GUIDE_ID")
-  if okId then table.insert(loaded, job.id_map_path) elseif job.id_map_path and job.id_map_path ~= "" then table.insert(warnings, errId) end
-
-  for i, maskPath in ipairs(job.mask_paths or {}) do
-    local name = string.format("GUIDE_MASK_%02d", i)
-    local okMask, errMask = addGuideLayer(sprite, maskPath, name)
-    if okMask then table.insert(loaded, maskPath) else table.insert(warnings, errMask) end
+  local entries = job.guide_entries or {}
+  for _, entry in ipairs(entries) do
+    local ok, err = upsertGuideReferenceLayer(sprite, entry)
+    if ok then
+      table.insert(loaded, entry.path)
+    else
+      table.insert(warnings, err)
+    end
   end
 
   return loaded, warnings

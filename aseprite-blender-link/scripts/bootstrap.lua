@@ -1,4 +1,6 @@
 local bootstrap = {}
+local syncManagerRef = nil
+local relayClientRef = nil
 
 function bootstrap.init(plugin, rootDir)
   if not json or type(json.decode) ~= "function" then
@@ -14,13 +16,19 @@ function bootstrap.init(plugin, rootDir)
   local state = load("core/state.lua")
   local dialogs = load("ui/dialogs.lua")
   local statusPanel = load("ui/status_panel.lua")
+  local syncManager = load("core/sync_manager.lua")
+  local relayClient = load("core/relay_client.lua")
+  syncManagerRef = syncManager
+  relayClientRef = relayClient
 
   local ctx = {
     config = config,
     logger = logger,
     state = state,
     rootDir = rootDir,
-    plugin = plugin
+    plugin = plugin,
+    syncManager = syncManager,
+    relayClient = relayClient
   }
 
   local commands = {
@@ -31,11 +39,14 @@ function bootstrap.init(plugin, rootDir)
     validateTexture = load("commands/validate_texture.lua"),
     exportToBlender = load("commands/export_to_blender.lua"),
     openExportFolder = load("commands/open_export_folder.lua"),
-    preferences = load("commands/preferences.lua")
+    preferences = load("commands/preferences.lua"),
+    toggleAutoSync = load("commands/toggle_auto_sync.lua"),
+    syncNow = load("commands/sync_now.lua")
   }
 
   config.load(plugin)
   logger.setConfig(config)
+  relayClient.connect(config, logger)
   logger.info("Extension bootstrapped")
 
   local function runWithErrors(fn)
@@ -55,10 +66,13 @@ function bootstrap.init(plugin, rootDir)
   plugin:newCommand{ id = constants.commandIds.OPEN_EXPORT_FOLDER, title = "Open Export Folder", group = "file_scripts", onclick = function() runWithErrors(function() commands.openExportFolder.run(ctx) end) end }
   plugin:newCommand{ id = constants.commandIds.PREFERENCES, title = "Preferences", group = "file_scripts", onclick = function() runWithErrors(function() commands.preferences.run(ctx) end) end }
   plugin:newCommand{ id = constants.commandIds.STATUS, title = "Show Blender Link Status", group = "file_scripts", onclick = function() statusPanel.show(state) end }
+  plugin:newCommand{ id = constants.commandIds.TOGGLE_AUTO_SYNC, title = "Toggle Auto Sync", group = "file_scripts", onclick = function() runWithErrors(function() commands.toggleAutoSync.run(ctx) end) end }
+  plugin:newCommand{ id = constants.commandIds.SYNC_NOW, title = "Sync Now", group = "file_scripts", onclick = function() runWithErrors(function() commands.syncNow.run(ctx) end) end }
 end
 
 function bootstrap.exit(plugin)
-  -- Commands are cleaned up by Aseprite automatically when extension unloads.
+  if syncManagerRef then syncManagerRef.detach_all() end
+  if relayClientRef then relayClientRef.disconnect() end
 end
 
 return bootstrap
