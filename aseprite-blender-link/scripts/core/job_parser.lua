@@ -16,38 +16,44 @@ local function validateSchema(raw)
   local errors = {}
   if type(raw) ~= "table" then
     addError(errors, "Root JSON must be an object")
-    return errors
+    return errors, nil
   end
 
-  if raw.schema == nil then addError(errors, "Missing required field: schema") end
-  if raw.created_at == nil then addError(errors, "Missing required field: created_at") end
-  if raw.revision == nil then addError(errors, "Missing required field: revision") end
-  if raw.revision_tag == nil then addError(errors, "Missing required field: revision_tag") end
+  local data = raw.data
+  if type(data) ~= "table" then
+    addError(errors, "Missing required object: data")
+    return errors, nil
+  end
 
-  if type(raw.asset) ~= "table" then
-    addError(errors, "Missing required object: asset")
+  if data.schema == nil then addError(errors, "Missing required field: data.schema") end
+  if data.revision == nil then addError(errors, "Missing required field: data.revision") end
+  if data.revision_tag == nil then addError(errors, "Missing required field: data.revision_tag") end
+
+  if type(data.asset) ~= "table" then
+    addError(errors, "Missing required object: data.asset")
   else
-    if raw.asset.object_name == nil then addError(errors, "Missing required field: asset.object_name") end
-    if raw.asset.material_name == nil then addError(errors, "Missing required field: asset.material_name") end
-    if raw.asset.image_name == nil then addError(errors, "Missing required field: asset.image_name") end
-    if raw.asset.image_path == nil then addError(errors, "Missing required field: asset.image_path") end
+    if data.asset.object_name == nil then addError(errors, "Missing required field: data.asset.object_name") end
+    if data.asset.material_name == nil then addError(errors, "Missing required field: data.asset.material_name") end
+    if data.asset.image_name == nil then addError(errors, "Missing required field: data.asset.image_name") end
+    if data.asset.image_path == nil then addError(errors, "Missing required field: data.asset.image_path") end
   end
 
-  if type(raw.task) ~= "table" then
-    addError(errors, "Missing required object: task")
+  if type(data.task) ~= "table" then
+    addError(errors, "Missing required object: data.task")
   else
-    if raw.task.map_type == nil then addError(errors, "Missing required field: task.map_type") end
-    if raw.task.source_path == nil then addError(errors, "Missing required field: task.source_path") end
-    if raw.task.export_path == nil then addError(errors, "Missing required field: task.export_path") end
-    if raw.task.source_path == "" then addError(errors, "task.source_path cannot be empty") end
-    if raw.task.export_path == "" then addError(errors, "task.export_path cannot be empty") end
+    if data.task.map_type == nil then addError(errors, "Missing required field: data.task.map_type") end
+    if data.task.source_path == nil then addError(errors, "Missing required field: data.task.source_path") end
+    if data.task.export_path == nil then addError(errors, "Missing required field: data.task.export_path") end
+    if data.task.guides == nil then addError(errors, "Missing required field: data.task.guides") end
+    if data.task.source_path == "" then addError(errors, "data.task.source_path cannot be empty") end
+    if data.task.export_path == "" then addError(errors, "data.task.export_path cannot be empty") end
   end
 
-  return errors
+  return errors, data
 end
 
-local function parseGuides(jobPath, raw)
-  local guides = raw.task and raw.task.guides or {}
+local function parseGuides(jobPath, data)
+  local guides = data.task and data.task.guides or {}
   if type(guides) ~= "table" then guides = {} end
 
   local maskPaths = {}
@@ -76,43 +82,43 @@ function parser.parse(jobPath)
     return nil, {"Invalid JSON format"}
   end
 
-  local errors = validateSchema(raw)
+  local errors, data = validateSchema(raw)
   if #errors > 0 then return nil, errors end
 
-  local mapType, unknownMapType = sanitizeMapType(raw.task.map_type)
-  local guideSet = parseGuides(jobPath, raw)
+  local mapType, unknownMapType = sanitizeMapType(data.task.map_type)
+  local guideSet = parseGuides(jobPath, data)
 
   local job = {
-    schema = raw.schema,
-    created_at = raw.created_at,
-    revision = raw.revision,
-    revision_tag = raw.revision_tag,
+    schema = data.schema,
+    revision = data.revision,
+    revision_tag = data.revision_tag,
 
-    asset = raw.asset,
-    asset_name = raw.asset.image_name,
-    asset_object_name = raw.asset.object_name,
-    asset_material_name = raw.asset.material_name,
-    image_name = raw.asset.image_name,
+    asset = data.asset,
+    asset_name = data.asset.image_name,
+    asset_object_name = data.asset.object_name,
+    asset_material_name = data.asset.material_name,
+    image_name = data.asset.image_name,
 
     map_type = mapType,
     map_type_unknown = unknownMapType,
 
-    source_image_path = paths.resolve(jobPath, raw.task.source_path),
-    export_image_path = paths.resolve(jobPath, raw.task.export_path),
+    source_image_path = paths.resolve(jobPath, data.task.source_path),
+    export_image_path = paths.resolve(jobPath, data.task.export_path),
 
     palette_path = guideSet.palette_path,
     uv_guide_path = guideSet.uv_guide_path,
     id_map_path = guideSet.id_map_path,
     mask_paths = guideSet.mask_paths,
 
-    layer_template = raw.task.layer_template or raw.layer_template,
-    locked_constraints = raw.task.locked_constraints or raw.locked_constraints or {},
+    layer_template = data.task.layer_template,
+    locked_constraints = data.task.locked_constraints or {},
 
-    width = raw.task.width,
-    height = raw.task.height,
-    color_mode = raw.task.color_mode,
+    width = data.task.width,
+    height = data.task.height,
+    color_mode = data.task.color_mode,
 
-    raw = raw
+    raw = raw,
+    data = data
   }
 
   for _, key in ipairs(constants.lockedConstraintKeys) do

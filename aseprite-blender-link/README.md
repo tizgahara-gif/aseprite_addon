@@ -24,23 +24,23 @@ Blender側コンパニオンアドオンが生成した `job JSON` を Aseprite 
 4. Aseprite の `Edit > Preferences > Extensions > Add Extension` から導入
 
 ## job JSON 形式
-現行 Blender companion add-on の nested schema を前提にしています。
+現行 Blender companion add-on の nested schema (`data.*`) を前提にしています。
 
 必須:
-- `schema`, `created_at`, `revision`, `revision_tag`
-- `asset.object_name`, `asset.material_name`, `asset.image_name`, `asset.image_path`
-- `task.map_type`, `task.source_path`, `task.export_path`
+- `data.schema`, `data.revision`, `data.revision_tag`
+- `data.asset.object_name`, `data.asset.material_name`, `data.asset.image_name`, `data.asset.image_path`
+- `data.task.map_type`, `data.task.source_path`, `data.task.export_path`, `data.task.guides`
 
 任意:
-- `task.guides.palette_path`
-- `task.guides.uv_guide_path`
-- `task.guides.id_map_path`
-- `task.guides.mask_paths`
-- `task.locked_constraints`
-- `task.layer_template`
-- `task.width`, `task.height`, `task.color_mode`
+- `data.task.guides.palette_path`
+- `data.task.guides.uv_guide_path`
+- `data.task.guides.id_map_path`
+- `data.task.guides.mask_paths`
+- `data.task.locked_constraints`
+- `data.task.layer_template`
+- `data.task.width`, `data.task.height`, `data.task.color_mode`
 
-`Open Blender Job` は `task.source_path` を開き、`Export to Blender Target` は `task.export_path` に保存します。
+`Open Blender Job` は `data.task.source_path` を開き、`Export to Blender Target` は `data.task.export_path` に保存します。
 
 ## 基本操作
 1. **Open Blender Job** で job JSON を開く

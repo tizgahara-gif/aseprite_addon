@@ -1,15 +1,16 @@
 {
-  "schema": "blender_companion_job_v2",
-  "created_at": "2026-03-20T12:00:00Z",
-  "revision": 1,
-  "revision_tag": "r001",
-  "asset": {
-    "object_name": "Body",
-    "material_name": "MAT_Body",
-    "image_name": "BodyTexture"
-  },
-  "task": {
-    "map_type": "BASECOLOR",
-    "source_path": "sample_texture.png"
+  "data": {
+    "schema": "blender_companion_job_v2",
+    "revision": 1,
+    "revision_tag": "r001",
+    "asset": {
+      "object_name": "Body",
+      "material_name": "MAT_Body",
+      "image_name": "BodyTexture"
+    },
+    "task": {
+      "map_type": "BASECOLOR",
+      "source_path": "sample_texture.png"
+    }
   }
 }
