@@ -1,0 +1,19 @@
+{
+  "schema": "blender_companion_job_v2",
+  "revision": 3,
+  "revision_tag": "r003",
+  "asset": {
+    "object_name": "Body",
+    "material_name": "MAT_Body",
+    "image_name": "BodyTexture",
+    "image_path": "sample_texture.png"
+  },
+  "task": {
+    "map_type": "BASECOLOR",
+    "source_path": "sample_texture.png",
+    "export_path": "output/sample_texture_export_root.png",
+    "guides": [
+      "sample_uv_guide.png"
+    ]
+  }
+}

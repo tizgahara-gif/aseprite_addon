@@ -38,3 +38,14 @@ python tests/fixtures/generate_sample_pngs.py
 - Aseprite は WebSocket client として `relay_url` へ接続します。
 - 自動export後に `texture_exported` JSON を relay へ通知します。
 - Blender 側は relay inbox(JSON) を timer polling して `image.reload()` します。
+
+
+## Schema 互換モード
+- parser は `raw.data or raw` で payload を決定し、
+  - data wrapper 付き schema (`{ "data": ... }`)
+  - root 直下 schema
+  の両方に対応します。
+- `task.guides` は object / string array / nil の全ケースを許容します。
+  - array: 1件目を `GUIDE_UV`、2件目以降を `GUIDE_EXTRA_XX`
+  - object: `uv_guide_path`, `id_map_path`, `mask_paths`, `extra_paths` を利用
+  - nil: 空ガイドとして扱いエラーにしません。
