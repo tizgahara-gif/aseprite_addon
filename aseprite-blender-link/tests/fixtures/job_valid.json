@@ -1,0 +1,32 @@
+{
+  "data": {
+    "schema": "blender_companion_job_v2",
+    "revision": 1,
+    "revision_tag": "r001",
+    "asset": {
+      "object_name": "Body",
+      "material_name": "MAT_Body",
+      "image_name": "BodyTexture",
+      "image_path": "sample_texture.png"
+    },
+    "task": {
+      "map_type": "BASECOLOR",
+      "source_path": "sample_texture.png",
+      "export_path": "output/sample_texture_export.png",
+      "width": 1,
+      "height": 1,
+      "color_mode": "rgb",
+      "layer_template": "base_template_v1",
+      "locked_constraints": {
+        "lock_resolution": true,
+        "lock_palette": true,
+        "lock_color_mode": true,
+        "lock_required_layers": true
+      },
+      "guides": {
+        "palette_path": "sample_palette.gpl",
+        "uv_guide_path": "sample_uv_guide.png"
+      }
+    }
+  }
+}
